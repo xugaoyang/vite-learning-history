@@ -112,6 +112,52 @@ vite build # 执行应用构建
 vite preview # 构建完应用后，本地启一个静态服务器，预览构建产物
 ```
 
+### 环境变量
+
+1. `.env`文件
+
+```bash
+.env.[mode] # 只在指定模式下加载
+```
+
+```json
+  "prod": "vite --mode production"
+```
+
+注意`Vite`默认是不加载`.env`文件的，因为这些文件需要在执行完`Vite`配置后才能确定加载哪一个.使用第三方库`dotenv`读取配置文件`.env`,解析文件中的环境变量,注入进`process`对象,`vite`考虑和其他配置的冲突不会直接将环境变量插入`process`,可以调用`Vite`导出的`loadEnv`函数来加载指定的`.env`文件
+
+```js
+// 无prefixes,只获取前缀为'VITE_'的环境变量;prefixes: '',来加载所有环境变量，而不管是否有 `VITE_` 前缀;prefixes: ['VITE_','VUE_'],只拿定制前缀开头的变量
+function loadEnv(
+  mode: string,
+  envDir: string,
+  prefixes: string | string[] = 'VITE_',
+): Record<string, string>
+
+// process.cwd() 当前执行node命令时候的文件夹地址 ——工作目录;__dirname 被执行的js 文件的地址 ——文件所在目录
+const env = loadEnv(mode, process.cwd(),'')
+```
+
+2. `import.meta.env`对象
+
+- import.meta.env.MODE:{string} 应用运行的模式
+- import.meta.env.BASE_URL:{string} 部署应用时的基本 URL。他由 base 配置项决定
+- import.meta.env.PROD:{boolean} 应用是否运行在生产环境
+- import.meta.env.DEV:{boolean} 应用是否运行在开发环境 (永远与 import.meta.env.PROD 相反)。
+- import.meta.env.SSR:{boolean} 应用是否运行在 server 上
+
+```js
+// 以 envPrefix 开头的环境变量会通过 import.meta.env 暴露在你的客户端源码中
+export default defineConfig({
+  envPrefix: 'VITE_', // string || string[]
+})
+```
+
+3. 补充
+
+- 为什么 vite.config.js 可以书写 esmodule 的形式?因为 vite 在读取 vite.config.js 的时候 node 率先会将 esmodule 转换成 commonjs,node 即可识别
+- 如果环境变量不是以`VITE`开始，不会在客户端暴露至`import.meta.env`,可以通过`envPrefix`手动更改前缀
+
 ### 配置
 
 #### vite.config
@@ -123,59 +169,7 @@ export default defineConfig({
 })
 ```
 
-#### 环境变量
-
-1. `.env`文件
-
-```bash
-.env.[mode] # 只在指定模式下加载
-```
-
-使用第三方库`dotenv`读取配置文件`.env`,解析文件中的环境变量,注入进 process 对象,vite 考虑和其他配置的冲突不会直接将环境变量插入 process,可以调用**loadEnv**方法手动确认 env 文件
-
-```json
-  "prod": "vite --mode production"
-```
-
-```js
-loadEnv(mode, process.cwd(),'')
-
-function loadEnv(
-  mode: string,
-  envDir: string,
-  prefixes: string | string[] = 'VITE_',
-): Record<string, string>
-
-// 无prefixes,只获取前缀为'VITE_'的环境变量
-// prefixes: '',拿所有的环境变量以及node对应的变量
-// prefixes: ['VITE_','VUE_'],只拿定制前缀开头的变量
-```
-
-2. `import.meta.env`对象
-
-- import.meta.env.MODE:{string} 应用运行的模式
-- import.meta.env.BASE_URL:{string} 部署应用时的基本 URL。他由 base 配置项决定
-- import.meta.env.PROD:{boolean} 应用是否运行在生产环境
-- import.meta.env.DEV:{boolean} 应用是否运行在开发环境 (永远与 import.meta.env.PROD 相反)。
-- import.meta.env.SSR:{boolean} 应用是否运行在 server 上
-
-3. 补充
-
-- 为什么 vite.config.js 可以书写 esmodule 的形式,因为 vite 在读取 vite.config.js 的时候 node 率先会将 esmodule 转换成 commonjs,node 即可识别
-- 如果环境变量不是以`VITE`开始，不会在客户端暴露至 import.meta.env，可以通过`envPrefix`手动更改前缀
-
-### 插件介绍
-
-### 支持
-
-vite 浏览器支持:
-
-- Chrome >=87
-- Firefox >=78
-- Safari >=14
-- Edge >=88
-
-### vite 处理 css
+#### vite 处理 css
 
 1. vite 读取 main.js 引用的 index.css
 2. 直接用 fs 读取 index.css 中文件内容
@@ -202,8 +196,6 @@ css: {
 },
 ```
 
-### 静态资源
-
 #### 别名配置
 
 ```js
@@ -214,32 +206,40 @@ resolve: {
 }
 ```
 
-### 分包策略
-
-#### 浏览器缓存
+#### 分包策略 -- 将第三方资源文件单独打包一个文件，自己写的业务代码打包成另一个文件
 
 1. 同一个静态资源名字没有变化,那么浏览器就不会重新获取资源,直接读缓存
 2. hash 值内容变更,值也会变更
 3. 针对不会变更内容的文件，进行单独打包处理
 
 ```js
-build: {
-  output: {
-    manualChunks: (id) => {
-      console.log('id', id)
-    }
-  }
-}
+// 在 Vite 2.8 及更早版本中，默认的策略是将 chunk 分割为 index 和 vendor
+export default defineConfig({
+  build: {
+    output: {
+      manualChunks: (id) => {
+        if (id.includes('node_modules')) {
+          return 'vendor'
+        }
+      },
+    },
+  },
+})
+// 从 Vite 2.9 起，manualChunks 默认情况下不再被更改。你可以通过在配置文件中添加 splitVendorChunkPlugin 来继续使用 “分割 Vendor Chunk” 策略
+// vite.config.js
+import { splitVendorChunkPlugin } from 'vite'
+export default defineConfig({
+  plugins: [splitVendorChunkPlugin()],
+})
 ```
 
-### 跨域配置
+#### 跨域配置
 
-#### 同源策略
+> 跨域：遵循浏览器同源策略规则
+> 服务端不存在跨域，相当于用开发服务器访问三方接口，浏览器就报不会跨域错误
 
-> 仅在浏览器发生，浏览器规则
+##### 开发配置
 
-#### 开发配置
-服务端不存在跨域，相当于用开发服务器访问三方接口，浏览器就不报错误了
 ```js
 export default defineConfig({
   server: {
@@ -254,10 +254,7 @@ export default defineConfig({
 })
 ```
 
-#### 生产配置
+##### 生产配置
+
 1. nginx: 代理服务
 2. 配置身份标记: access-control-allow-origin
-
-### 多页面
-
-### 库模式
