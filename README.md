@@ -203,6 +203,7 @@ export default defineConfig({
 5. 将创建的映射对象在脚本中进行默认导出
 
 ```js
+export default defineConfig({
 css: {
   // 配置同步至postcss modules
   modules: {
@@ -211,6 +212,7 @@ css: {
     generateScopedName: ''
   },
 },
+})
 ```
 
 #### 别名配置
