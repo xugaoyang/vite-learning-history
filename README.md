@@ -56,9 +56,12 @@ HMR(Hot Module Replacement):模块热替换.
 ```
 `/@vite/client`脚本实现了`HMR`客户端的逻辑，也就是ws链接的响应处理函数
 
-![@vite/client源码](./images/vite_client.jpg)
+![@vite/client源码](https://github.com/xugaoyang/vite-learning-history/blob/main/images/vite_client.jpg?raw=true)
+
 可以看到,ws中会处理多种类型的事件.Vite 在更新模块时用到最多的是full-reload和update两个事件.前者用来刷新整个页面,也即执行location.reload()函数,后者会重新动态加载热更新的模块.
-![vite_ws](./images/vite_ws.jpg)
+
+![vite_ws](https://github.com/xugaoyang/vite-learning-history/blob/main/images/vite_ws.jpg?raw=true)
+
 代码变更后，ws能看到触发了type:update的事件.实际内部的操作不做过多解释.
 
 #### 扩展：
