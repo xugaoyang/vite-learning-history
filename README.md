@@ -105,6 +105,138 @@ const Vue = webpack_require('vue')
 
 Vite 利用了浏览器支持原生 esmodule 的优势，极大优化体验。
 
+##### ESM简介
+
+- 严格模式
+- export: 规定模块对外导出的接口
+- import: 规定模块对外导入的接口
+- 使用场景: ESM在支持的浏览器环境下可以直接使用，在不支持的端需要编译、打包后使用，通过`babel`将不被支持的`import`便以为当前受到广泛支持的`require`
+- 加载方式: ESM加载模块的方式取决于所处的环境，Nodejs同步加载，浏览器端异步加载
+- 优点: 支持同步/异步加载、语法简单、支持模块静态分析、支持循环引用
+- 缺点: 兼容性不佳 ,很多第三方库都不支持esm
+
+##### 模块化规范
+> 静态分析：在不运行程序的条件下，进行程序分析的方法。
+> tree shaking: 用来描述移除js上下文中未引用代码行为的术语。它依赖ES2015中的import和export语句，用来检测代码模块是否被导出、导入，且被js文件使用。
+
+ESM能做静态分析的原因是代码在引入前就确认使用了那些库，而CMD、AMD、CommonJs这些可以用语句控制的，就变成动态引入了，所以没法做静态分析
+
+1. commonjs
+- 主要是nodejs使用，通过require同步加载模块，exports导出内容
+- exports/module.exports: 暴露需要被外部访问的属性和方法
+- require: 规定模块对外导入的接口
+- 使用场景：commonjs主要在服务端使用，也可以通过打包工具打包之后在浏览器端使用
+- 加载方式: commonjs通过同步的方式加载模块，首次加载缓存结果，后续加载直接读取缓存结果
+- 优点: 可以在任意位置`require`模块、支持循环依赖
+- 缺点: 同步的加载方式不适用于浏览器端，使用需要打包，难以支持模块静态分析
+
+2. AMD require.js
+- 主要用于浏览器，因为浏览器加载模块需要异步加载，如果使用同步的话，有些模块加载的时候当用到的时候才加载，就处于等待，浏览器假死，那么这时候就需要用到异步加载
+- 使用场景: 浏览器
+- 加载方式: 异步加载
+- 优点: 依赖异步加载，更快的启动速度、支持循环依赖、支持插件
+- 缺点: 语法相对复杂、依赖加载器、难以支持模块静态分析
+
+```js
+/**
+ * define
+ * @param id 模块名
+ * @param dependencies 依赖列表
+ * @param factory 模块的具体内容/具体实现
+ */
+define(id?: string, dependencies?: string[], factory: Function | Object);
+​
+​
+define("alpha", ["require", "exports", "beta"], function (require, exports, beta) {
+    exports.verb = function() {
+        // return beta.verb();
+        //Or:
+        return require("beta").verb();
+    }
+});
+​
+​
+require(["alpha"], function (exports) {
+  // 依赖前置
+  console.log(exports.verb()); 
+});
+
+```
+
+3. CMD 
+
+- 通用模块定义。推崇依赖就近，CMD是延迟执行，主要是浏览器端使用
+- 优点: 依赖异步加载，更快的启动速度、支持循环依赖、依赖就近
+- 缺点: 语法相对复杂、依赖加载器、难以支持模块静态分析
+
+```js
+/**
+ * define
+ * @param id 模块名
+ * @param dependencies 依赖列表
+ * @param factory 模块的具体内容/具体实现
+ */
+define(id?: string, dependencies?: string[], factory: Function | Object);
+​
+define('hello', ['jquery'], function(require, exports, module) {
+  // 模块代码
+});
+​
+define(function (require, exports) {
+  const hello = require("hello"); // 依赖就近
+});
+
+
+```
+
+4. UMD
+- 通用模块定义，主要解决commonjs和AMD规范下的代码不通用的问题，同时还支持将模块挂载到全局，是跨平台的解决方案
+- 使用场景: UMD同时在服务器端和浏览器端使用
+- 加载方式: UMD加载模块的方式取决于所处的环境，nodejs同步加载，浏览器异步加载
+- 优点: 跨平台兼容
+- 缺点: 代码量大
+
+
+```js
+(function (window, factory) {
+   if (typeof exports === 'object') {
+      module.exports = factory();
+   } else if (typeof define === 'function' && define.amd) {
+      define(factory);
+   } else {
+      window.eventUtil = factory();
+   }
+})(this, function () {
+   //module ...
+});
+
+```
+
+
+
+1. ESModule
+
+- export: 规定模块的对外接口
+- import: 输入其他模块提供的功能
+
+```js
+/** 定义模块 math.js **/
+const num = 0
+const add = function (a, b) {
+    return a + b
+}
+export { num, add }
+
+/** 引用模块 **/
+import { num, add } from './math';
+console.log(add(num+1))
+```
+ESM编译时加载，在编译时引入代码，而不是在运行时加载，所以ESM无法实现条件加载，所以才使得静态分析成为可能。
+
+6. ESM和commonjs的区别
+- commonjs输出的事值的拷贝，ESM输出的是值的引用
+- commonjs是运行时加载，ESM是编译时输出接口
+
 ### 解决的问题
 
 当我们开始构建越来越大型的应用时，需要处理的 JavaScript 代码量也呈指数级增长。包含数千个模块的大型项目相当普遍。基于 JavaScript 开发的工具就会开始遇到性能瓶颈：通常需要很长时间（甚至是几分钟！）才能启动开发服务器，即使使用模块热替换（HMR），文件修改后的效果也需要几秒钟才能在浏览器中反映出来。如此循环往复，迟钝的反馈会极大地影响开发者的开发效率和幸福感。
@@ -195,7 +327,23 @@ export default defineConfig({
 5. 将该 css 文件中的内容直接替换 js 脚本(方便热更新或者 css 模块化)，同时设置 content-type 为 js，从而让浏览器以 js 脚本的形式来执行该 css
 
 #### cssModule
+> CSS Modules并不是一个正式的声明或者是浏览器的一个实现，而是通过构建工具来使所有的class达到scope的一个过程
 
+约定了 *.module.css 文件将启用 CSS Module 功能
+
+解决问题：
+1. 全局命名冲突，因为CSS Modules只关心组件本身，只要保证组件本身命名不冲突，就不会有这样的问题，一个组件被编译之后的类名可能是这样的：
+
+
+
+2. 模块化
+
+
+3. 解决嵌套层次过深的问题
+
+
+
+具体流程：
 1. 将所有类名进行一定规则的替换（footer 替换成\_footer_122_1）
 2. 同时创建一个映射对象{footer: '\_footer_122_1'}
 3. 将替换过的内容将 style 标签放入 header
