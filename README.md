@@ -13,7 +13,7 @@
 
   传统打包器更多的是抓取整体应用进行编译，vite 是怎么改进开发服务器启动时间的。
 
-  1. 依赖：用 esbuild 预构建依赖，esbuild 使用 go 语言编写，构建速度快 10-100 倍
+  1. 依赖：用`esbuild`预构建依赖，`esbuild`使用`go`语言编写，构建速度快 10-100 倍
   2. 源码：非 js 文件需要被转换，vite 使用`原生ESM`提供源码，这实际上是让浏览器接管了打包程序的部分工作：Vite 只需要在浏览器请求源码时进行转换并按需提供源码。根据情景动态导入代码，即只在当前屏幕上实际使用时才会被处理
 
 - ⚡️ 轻量快速的热重载 -- 无论应用程序大小如何，都始终极快的模块热替换(HMR)
@@ -104,10 +104,33 @@ const Vue = webpack_require('vue')
 ```
 
 Vite 利用了浏览器支持原生 esmodule 的优势，极大优化体验。
+- 首先它们的构建复杂度非常低，修改任何组件都只需做单文件编译，时间复杂度永远是 O(1)
+- 借助 ESM 的能力，模块化交给浏览器端，不存在资源重复加载问题，如果不是涉及到 jsx 或者 typescript 语法，甚至可以不用编译直接运行
 
 ##### ESM简介
+> ES modules 是 JavaScript 官方的标准化模块系统。相比于 CommonJS 和 AMD 等模块规范，最新浏览器原生支持模块功能，不再需要额外打包处理
+**通过给script标签添加type=module的属性使用ES Modules**
 
-- 严格模式
+```js
+// 导出：export命令
+export const obj = {name: 'E1e'}；
+
+// 默认导出 export default命令
+export default {name: 'E1e'};
+
+
+// 引入接口：import命令
+
+// 引入普通导出
+import { obj } from './test.js';
+
+// 引入默认导出
+import obj from './test.js';
+
+```
+
+
+- 自动严格模式,忽略`use strict`
 - export: 规定模块对外导出的接口
 - import: 规定模块对外导入的接口
 - 使用场景: ESM在支持的浏览器环境下可以直接使用，在不支持的端需要编译、打包后使用，通过`babel`将不被支持的`import`便以为当前受到广泛支持的`require`
@@ -214,8 +237,8 @@ define(function (require, exports) {
 
 
 
-1. ESModule
-
+5. ESModule
+> [es6模块简介](https://es6.ruanyifeng.com/#docs/module)
 - export: 规定模块的对外接口
 - import: 输入其他模块提供的功能
 
@@ -234,7 +257,7 @@ console.log(add(num+1))
 ESM编译时加载，在编译时引入代码，而不是在运行时加载，所以ESM无法实现条件加载，所以才使得静态分析成为可能。
 
 6. ESM和commonjs的区别
-- commonjs输出的事值的拷贝，ESM输出的是值的引用
+- commonjs输出的是值的拷贝，ESM输出的是值的引用
 - commonjs是运行时加载，ESM是编译时输出接口
 
 ### 解决的问题
@@ -267,6 +290,8 @@ vite preview # 构建完应用后，本地启一个静态服务器，预览构�
 
 ```bash
 .env.[mode] # 只在指定模式下加载
+
+pnpm run mode
 ```
 
 ```json
