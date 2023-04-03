@@ -387,9 +387,7 @@ export default defineConfig({
 1. 全局命名冲突，因为CSS Modules只关心组件本身，只要保证组件本身命名不冲突，就不会有这样的问题，一个组件被编译之后的类名可能是这样的：
 
 
-
 2. 模块化
-
 
 3. 解决嵌套层次过深的问题
 
@@ -429,12 +427,15 @@ resolve: {
 
 默认会将第三方资源和业务代码打包为一个文件,每次页面去请求这个文件时,因为浏览器缓存机制是名字没有变化即读取缓存,不会重新拿服务器数据;如果文件名加了`hash`值,每次内容改变文件名也改变,但是文件大小没有改变,依然是要加载同样的文件【第三方资源+业务代码】,请求的js文件体积大导致响应慢,所以要进行分包处理，将第三方资源和业务代码分开打包,静态不变的第三方资源包不会变更直接读取缓存,变化的业务代码重新从服务器拉取
 
+默认情况下，浏览器重复请求相同名称的静态资源时，会直接使用缓存的资源。利用这个机制我们可以将不会经常更新的代码单独打包成一个 JS 文件，这样就可以减少 HTTP 请求，同时降低服务器压力
+
 ```js
 // 在 Vite 2.8 及更早版本中，默认的策略是将 chunk 分割为 index 和 vendor
 export default defineConfig({
   build: {
     output: {
       manualChunks: (id) => {
+        // 将 node_modules 中的代码单独打包成一个 JS 文件
         if (id.includes('node_modules')) {
           return 'vendor'
         }
@@ -475,3 +476,14 @@ export default defineConfig({
 
 1. nginx: 代理服务
 2. 配置身份标记: `access-control-allow-origin`
+
+
+### 性能优化篇
+[性能优化](https://juejin.cn/post/7176046988247433275?)
+#### 分包
+#### 摇树[tree shaking]
+#### gzip
+#### cdn
+#### 图片压缩
+#### 构建分析
+
